@@ -1,6 +1,7 @@
 <script lang="ts">
   import { colors } from '../lib/colors';
-  import { fieldId, missing, output, parseForm, type Form } from '../lib/form';
+  import { fieldId, missing, outOfRange, output, parseForm, type Form } from '../lib/form';
+  import { t } from '../lib/locale.svelte';
   import { onNui, post } from '../lib/nui';
   import type { InputValue } from '../lib/types';
   import ActionButton from './ActionButton.svelte';
@@ -21,8 +22,9 @@
   function finish(result: InputValue[] | null) {
     if (!form) return;
 
+    const id = form.id;
     form = null;
-    post('inputDialogSubmit', { values: result });
+    post('inputDialogSubmit', { id, values: result });
   }
 
   function setValue(index: number, value: InputValue) {
@@ -43,7 +45,12 @@
     if (!form) return;
 
     const rows = form.rows;
-    const failed = new Set(rows.flatMap((row, index) => (missing(row, values[index] ?? null) ? [index] : [])));
+    const failed = new Set(
+      rows.flatMap((row, index) => {
+        const value = values[index] ?? null;
+        return missing(row, value) || outOfRange(row, value) ? [index] : [];
+      }),
+    );
 
     if (failed.size > 0) {
       invalid = failed;
@@ -74,7 +81,7 @@
         {#if form.allowCancel}
           <button
             type="button"
-            aria-label="Close"
+            aria-label={t('ui.close')}
             onclick={cancel}
             class="flex size-6 shrink-0 items-center justify-center rounded-md outline-none transition-colors duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-cobalt"
           >

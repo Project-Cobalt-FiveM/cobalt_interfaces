@@ -1,4 +1,5 @@
 import type { CardShowData } from './card';
+import type { Locales } from './locale.svelte';
 
 export type NotifyData = {
   id?: string;
@@ -28,12 +29,12 @@ export type ProgressStartData = {
 
 export type ProgressStopData = {
   completed: boolean;
-  volume: number;
 };
 
 export type SkillCheckDifficulty = 'easy' | 'medium' | 'hard' | { areaSize: number; speedMultiplier: number };
 
 export type SkillCheckStartData = {
+  id: number;
   difficulty: SkillCheckDifficulty | SkillCheckDifficulty[];
   inputs?: string[];
 };
@@ -73,7 +74,6 @@ export type InputRowData = {
   icon?: string;
   prefix?: string;
   required?: boolean;
-  isRequired?: boolean;
   disabled?: boolean;
   default?: unknown;
   checked?: boolean;
@@ -86,15 +86,14 @@ export type InputRowData = {
 };
 
 export type InputDialogOpenData = {
+  id: number;
   heading: string;
   rows: (string | InputRowData)[];
   options?: {
     allowCancel?: boolean;
-    canCancel?: boolean;
     icon?: string;
     description?: string;
     submitText?: string;
-    confirmLabel?: string;
     cancelText?: string;
   };
 };
@@ -104,6 +103,7 @@ export type InputValue = string | number | boolean | (string | number)[] | null;
 export type AlertResult = 'confirm' | 'cancel';
 
 export type AlertDialogOpenData = {
+  id: number;
   header: string;
   content?: string;
   type?: 'confirm' | 'danger';
@@ -149,6 +149,7 @@ export type NuiMessages = {
   radialRelease: undefined;
   cardShow: CardShowData;
   cardHide: undefined;
+  setLocales: Locales;
 };
 
 export type NuiAction = keyof NuiMessages;
@@ -157,12 +158,13 @@ export type NuiCallbacks = {
   contextSelect: { id: string; key: ContextOptionKey };
   contextBack: { id: string };
   contextClose: { id: string };
-  skillCheckOver: boolean;
-  inputDialogSubmit: { values: InputValue[] | null };
-  alertDialogSubmit: { result: AlertResult };
+  skillCheckOver: { id: number; success: boolean };
+  inputDialogSubmit: { id: number; values: InputValue[] | null };
+  alertDialogSubmit: { id: number; result: AlertResult };
   radialSelect: { index: number };
   radialBack: Record<string, never>;
   radialClose: Record<string, never>;
+  ready: Record<string, never>;
 };
 
 export type NuiCallback = keyof NuiCallbacks;

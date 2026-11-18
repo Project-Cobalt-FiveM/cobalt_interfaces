@@ -121,6 +121,13 @@ local function blockPauseMenu()
     DisableControlAction(0, 200, true)
 end
 
+---@param completed boolean
+local function playOutcome(completed)
+    if not config.sounds.enabled or GetResourceState('cobalt_sound') ~= 'started' then return end
+
+    exports.cobalt_sound:PlayFrontend(completed and 'progress_complete' or 'progress_cancel', config.sounds.volume)
+end
+
 ---@param data InterfaceProgressProps
 ---@return boolean completed
 local function run(data)
@@ -161,12 +168,11 @@ function Progress.start(data)
     setBusy(true)
 
     local ok <const>, completed <const> = pcall(run, data)
+    local finished <const> = ok and completed == true
     active = nil
 
-    nui.send('progressStop', {
-        completed = ok and completed,
-        volume = config.sounds.enabled and config.sounds.volume or 0,
-    })
+    nui.send('progressStop', { completed = finished })
+    playOutcome(finished)
 
     if data.prop then TriggerServerEvent('ox_lib:progressProps', nil) end
 
@@ -197,7 +203,7 @@ RegisterCommand(CANCEL_COMMAND, function()
     if active and active.canCancel then active = false end
 end, false)
 
-RegisterKeyMapping(CANCEL_COMMAND, 'Cancel progress bar', 'keyboard', 'x')
+RegisterKeyMapping(CANCEL_COMMAND, locale('keybind.cancel_progress'), 'keyboard', 'x')
 
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= cache.resource or not active then return end

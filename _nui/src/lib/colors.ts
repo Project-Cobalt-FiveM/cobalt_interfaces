@@ -6,6 +6,7 @@ export const colors = {
   secondary: '#262626',
   card: '#141414',
   cobalt: '#5078D7',
+  cobaltForeground: '#7C9BE4',
   success: '#22C55E',
   warning: '#EAB308',
   destructive: '#EF4444',

@@ -1,0 +1,37 @@
+{
+  "notify": {
+    "busy": "You're already doing something"
+  },
+  "radial": {
+    "menu": "Menu"
+  },
+  "keybind": {
+    "radial": "Open the radial menu",
+    "cancel_progress": "Cancel progress bar"
+  },
+  "ui": {
+    "unavailable": "Unavailable",
+    "actions_one": "%s action",
+    "actions_other": "%s actions",
+    "click_to_close": "Click to close",
+    "release_to_close": "Release to close",
+    "back": "Back",
+    "close": "Close",
+    "cancelled": "Cancelled",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "required": "Required",
+    "select": "Select",
+    "selected_count": "%s selected",
+    "swatch": "%s swatch",
+    "skillcheck_hint": "Press %s in the blue zone",
+    "now": "now",
+    "minutes_ago": "%sm",
+    "notify": {
+      "success": "Success",
+      "error": "Error",
+      "warning": "Warning",
+      "info": "Info"
+    }
+  }
+}

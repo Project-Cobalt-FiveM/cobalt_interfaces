@@ -4,11 +4,14 @@ local notify <const> = require 'client.notify'
 local SkillCheck <const> = {}
 
 ---@class PendingSkillCheck
+---@field id integer
 ---@field promise promise
 ---@field owner string
 
 ---@type PendingSkillCheck?
 local pending
+
+local lastId = 0
 
 ---@alias SkillCheckDifficulty 'easy' | 'medium' | 'hard' | { areaSize: number, speedMultiplier: number }
 
@@ -32,9 +35,16 @@ function SkillCheck.start(difficulty, inputs, owner)
         return false
     end
 
-    local current <const> = { promise = promise.new(), owner = owner or GetInvokingResource() or cache.resource }
+    lastId += 1
+
+    local current <const> = {
+        id = lastId,
+        promise = promise.new(),
+        owner = owner or GetInvokingResource() or cache.resource,
+    }
+
     pending = current
-    nui.send('skillCheckStart', { difficulty = difficulty, inputs = inputs })
+    nui.send('skillCheckStart', { id = current.id, difficulty = difficulty, inputs = inputs })
     nui.focus('skillcheck', 'keys')
 
     return Citizen.Await(current.promise)
@@ -59,9 +69,12 @@ function SkillCheck.release(owner)
     finish(false)
 end
 
-RegisterNUICallback('skillCheckOver', function(success, cb)
+RegisterNUICallback('skillCheckOver', function(data, cb)
     cb(1)
-    finish(success == true)
+
+    if type(data) ~= 'table' or not pending or data.id ~= pending.id then return end
+
+    finish(data.success == true)
 end)
 
 return SkillCheck

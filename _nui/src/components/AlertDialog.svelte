@@ -1,9 +1,11 @@
 <script lang="ts" module>
   import { resolveIcon } from '../lib/icons';
-  import { isRecord, str } from '../lib/parse';
+  import { t } from '../lib/locale.svelte';
+  import { isRecord, num, str } from '../lib/parse';
   import type { AlertResult } from '../lib/types';
 
   type Alert = {
+    id: number;
     run: number;
     danger: boolean;
     header: string;
@@ -19,18 +21,22 @@
   function parseAlert(data: unknown): Alert | null {
     if (!isRecord(data)) return null;
 
+    const id = num(data.id);
+    if (id === undefined) return null;
+
     const danger = data.type === 'danger';
     const labels = isRecord(data.labels) ? data.labels : {};
 
     return {
+      id,
       run: runs++,
       danger,
       header: str(data.header) ?? '',
       content: str(data.content),
       icon: resolveIcon(str(data.icon)) ?? (danger ? 'warning' : 'question'),
       showCancel: data.cancel !== false,
-      confirmText: str(labels.confirm) ?? 'Confirm',
-      cancelText: str(labels.cancel) ?? 'Cancel',
+      confirmText: str(labels.confirm) ?? t('ui.confirm'),
+      cancelText: str(labels.cancel) ?? t('ui.cancel'),
     };
   }
 </script>
@@ -47,8 +53,9 @@
   function finish(result: AlertResult) {
     if (!alert) return;
 
+    const id = alert.id;
     alert = null;
-    post('alertDialogSubmit', { result });
+    post('alertDialogSubmit', { id, result });
   }
 
   $effect(() => onNui('alertDialogOpen', (data) => (alert = parseAlert(data))));

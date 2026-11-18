@@ -1,5 +1,6 @@
 <script lang="ts" module>
   import { resolveIcon } from '../lib/icons';
+  import { t } from '../lib/locale.svelte';
   import { isRecord, nonEmpty, num, str, type NonEmpty } from '../lib/parse';
 
   type Item = {
@@ -21,11 +22,12 @@
 
   type Hover = number | 'centre' | null;
 
-  const STAGE = 400;
   const RING_RADIUS = 142;
   const TILE = 80;
+  const STAGE_MARGIN = 18;
   const BAND_RADIUS = 76;
   const HOVER_RADIUS = 84;
+  const CENTRE_SIZE = 136;
   const ARC_HALF_DEGREES = 20;
 
   let shows = 0;
@@ -61,25 +63,31 @@
     };
   }
 
-  function point(degrees: number, radius: number): [number, number] {
+  function ringRadius(count: number): number {
+    if (count < 2) return RING_RADIUS;
+
+    return Math.max(RING_RADIUS, TILE / Math.SQRT2 / Math.sin(Math.PI / count));
+  }
+
+  function point(degrees: number, radius: number, centre: number): [number, number] {
     const radians = (degrees * Math.PI) / 180;
-    return [STAGE / 2 + radius * Math.sin(radians), STAGE / 2 - radius * Math.cos(radians)];
+    return [centre + radius * Math.sin(radians), centre - radius * Math.cos(radians)];
   }
 
   function rem(px: number): string {
     return `${px / 16}rem`;
   }
 
-  function arcPath(degrees: number): string {
-    const [x0, y0] = point(degrees - ARC_HALF_DEGREES, BAND_RADIUS);
-    const [x1, y1] = point(degrees + ARC_HALF_DEGREES, BAND_RADIUS);
+  function arcPath(degrees: number, centre: number): string {
+    const [x0, y0] = point(degrees - ARC_HALF_DEGREES, BAND_RADIUS, centre);
+    const [x1, y1] = point(degrees + ARC_HALF_DEGREES, BAND_RADIUS, centre);
 
     return `M${x0} ${y0} A${BAND_RADIUS} ${BAND_RADIUS} 0 0 1 ${x1} ${y1}`;
   }
 
   function itemDetail(item: Item): string | undefined {
-    if (item.disabled) return 'Unavailable';
-    if (item.submenu && item.count) return `${item.count} ${item.count === 1 ? 'action' : 'actions'}`;
+    if (item.disabled) return t('ui.unavailable');
+    if (item.submenu && item.count) return t(item.count === 1 ? 'ui.actions_one' : 'ui.actions_other', item.count);
   }
 
   function tileLabelClass(item: Item, lit: boolean): string {
@@ -100,10 +108,13 @@
   let stage: HTMLDivElement | undefined = $state();
 
   const step = $derived(menu ? 360 / menu.items.length : 0);
+  const radius = $derived(menu ? ringRadius(menu.items.length) : RING_RADIUS);
+  const stageSize = $derived(2 * (radius + TILE / 2 + STAGE_MARGIN));
+  const stageCentre = $derived(stageSize / 2);
   const hovered = $derived(typeof hover === 'number' ? menu?.items[hover] : undefined);
-  const arc = $derived(hovered && !hovered.disabled && typeof hover === 'number' ? arcPath(hover * step) : null);
+  const arc = $derived(hovered && !hovered.disabled && typeof hover === 'number' ? arcPath(hover * step, stageCentre) : null);
   const detail = $derived(
-    hovered ? itemDetail(hovered) : (menu?.parent ?? (menu?.clickMode ? 'Click to close' : 'Release to close')),
+    hovered ? itemDetail(hovered) : (menu?.parent ?? t(menu?.clickMode ? 'ui.click_to_close' : 'ui.release_to_close')),
   );
 
   function select(index: number) {
@@ -121,7 +132,7 @@
     if (!menu || !stage) return;
 
     const rect = stage.getBoundingClientRect();
-    const scale = rect.width / STAGE;
+    const scale = rect.width / stageSize;
     const dx = event.clientX - (rect.left + rect.width / 2);
     const dy = event.clientY - (rect.top + rect.height / 2);
 
@@ -172,13 +183,13 @@
     <div
       bind:this={stage}
       class="relative shrink-0"
-      style:width={rem(STAGE)}
-      style:height={rem(STAGE)}
+      style:width={rem(stageSize)}
+      style:height={rem(stageSize)}
       in:motion={{ scale: 0.96 }}
       out:motion={{ scale: 0.96, duration: EXIT_MS }}
     >
-      <svg viewBox="0 0 {STAGE} {STAGE}" class="absolute inset-0 size-full" aria-hidden="true">
-        <circle cx={STAGE / 2} cy={STAGE / 2} r={BAND_RADIUS} fill="none" stroke={colors.card} stroke-width="16" />
+      <svg viewBox="0 0 {stageSize} {stageSize}" class="absolute inset-0 size-full" aria-hidden="true">
+        <circle cx={stageCentre} cy={stageCentre} r={BAND_RADIUS} fill="none" stroke={colors.card} stroke-width="16" />
         {#if arc}
           <path d={arc} fill="none" stroke={colors.cobalt} stroke-width="3" stroke-linecap="round" />
         {/if}
@@ -186,7 +197,7 @@
       {#key menu.key}
         <div class="absolute inset-0 animate-radial motion-reduce:animate-none">
           {#each menu.items as item, index (item.id)}
-            {@const [x, y] = point(index * step, RING_RADIUS)}
+            {@const [x, y] = point(index * step, radius, stageCentre)}
             {@const lit = hover === index && !item.disabled}
             <button
               type="button"
@@ -218,16 +229,16 @@
         onclick={centre}
         onmouseenter={() => (hover = 'centre')}
         class="absolute flex flex-col items-center justify-center gap-1 rounded-full border border-border bg-card outline-none"
-        style:left={rem(132)}
-        style:top={rem(132)}
-        style:width={rem(136)}
-        style:height={rem(136)}
+        style:left={rem(stageCentre - CENTRE_SIZE / 2)}
+        style:top={rem(stageCentre - CENTRE_SIZE / 2)}
+        style:width={rem(CENTRE_SIZE)}
+        style:height={rem(CENTRE_SIZE)}
       >
         {#if hovered}
           <span class="max-w-[7rem] truncate text-heading font-semibold text-foreground">{hovered.label}</span>
         {:else}
           <Icon name={menu.parent ? 'arrow-left' : 'close'} size={16} color={colors.mutedForeground} />
-          <span class="text-small font-medium text-muted-foreground">{menu.parent ? 'Back' : 'Close'}</span>
+          <span class="text-small font-medium text-muted-foreground">{t(menu.parent ? 'ui.back' : 'ui.close')}</span>
         {/if}
         {#if detail}
           <span class="max-w-[7rem] truncate text-caption text-caret">{detail}</span>

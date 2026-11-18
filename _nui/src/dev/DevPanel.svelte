@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { send, showCard, showMenu, showRadial } from './mock';
+  import { nextId, send, showCard, showMenu, showRadial } from './mock';
 
   const BACKDROP = 'https://app.paper.design/file-assets/01M6B1MGR3HSCNKXHHZBTP3Q0D/6MT7N7ER3XJS1TRTC2SWC7BBQV.jpg';
 
@@ -16,16 +16,17 @@
 
     send('textUiShow', { text: '[E] - Open trunk' });
     send('progressStart', { label: 'Repairing engine', duration: 30000, icon: 'wrench', cancelKey: 'X' });
-    send('skillCheckStart', { difficulty: [{ areaSize: 50, speedMultiplier: 0.05 }, 'medium', 'hard'], inputs: ['e'] });
+    send('skillCheckStart', { id: nextId(), difficulty: [{ areaSize: 50, speedMultiplier: 0.05 }, 'medium', 'hard'], inputs: ['e'] });
     showMenu('vehicle');
   }
 
   function inputDialog() {
     send('inputDialogOpen', {
+      id: nextId(),
       heading: 'Sell vehicle',
       rows: [
         { type: 'input', label: 'Buyer state ID', icon: 'user', placeholder: 'NKX42817', required: true },
-        { type: 'number', label: 'Price', prefix: '$', default: 42500 },
+        { type: 'number', label: 'Price', prefix: '$', default: 42500, min: 1000, max: 250000 },
         {
           type: 'select',
           label: 'Payment',
@@ -61,11 +62,11 @@
     ['Notify warning', () => send('notify', { type: 'warning', title: 'Low fuel', description: '8% left in the tank.' })],
     ['Notify no title', () => send('notify', { type: 'warn', description: '12% left. Nearest pump is 400 m away.' })],
     ['Progress', () => send('progressStart', { label: 'Repairing engine', duration: 5000, icon: 'wrench', cancelKey: 'X' })],
-    ['Complete progress', () => send('progressStop', { completed: true, volume: 0.3 })],
-    ['Cancel progress', () => send('progressStop', { completed: false, volume: 0.3 })],
+    ['Complete progress', () => send('progressStop', { completed: true })],
+    ['Cancel progress', () => send('progressStop', { completed: false })],
     ['Text UI', () => send('textUiShow', { text: '[E] - Open trunk' })],
     ['Hide text UI', () => send('textUiHide')],
-    ['Skill check', () => send('skillCheckStart', { difficulty: ['easy', 'medium', 'hard'], inputs: ['w', 'a', 's', 'd'] })],
+    ['Skill check', () => send('skillCheckStart', { id: nextId(), difficulty: ['easy', 'medium', 'hard'], inputs: ['w', 'a', 's', 'd'] })],
     ['Cancel skill check', () => send('skillCheckCancel')],
     ['Context menu', () => showMenu('vehicle')],
     ['Radial', showRadial],
@@ -75,6 +76,7 @@
       'Alert danger',
       () =>
         send('alertDialogOpen', {
+          id: nextId(),
           type: 'danger',
           header: 'Delete "Night shift" outfit?',
           content: "It's removed from your wardrobe and every saved outfit code stops working. This can't be undone.",
@@ -85,6 +87,7 @@
       'Alert confirm',
       () =>
         send('alertDialogOpen', {
+          id: nextId(),
           header: 'Join Los Santos Customs?',
           content: "You'll start as a Trainee mechanic and go on duty right away. You can leave from the job menu.",
           icon: 'briefcase',

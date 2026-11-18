@@ -12,6 +12,7 @@
     iconColor?: string;
     progress?: number;
     progressColor: string;
+    progressText: string;
     arrow: boolean;
     disabled: boolean;
     readOnly: boolean;
@@ -47,6 +48,8 @@
     const key = typeof value.key === 'number' ? value.key : str(value.key);
     if (key === undefined) return null;
 
+    const progressColor = parseScheme(value.colorScheme);
+
     return {
       key,
       title: str(value.title) ?? '',
@@ -54,7 +57,8 @@
       icon: resolveIcon(str(value.icon)),
       iconColor: str(value.iconColor),
       progress: num(value.progress),
-      progressColor: parseScheme(value.colorScheme),
+      progressColor,
+      progressText: progressColor === colors.cobalt ? colors.cobaltForeground : progressColor,
       arrow: value.arrow === true,
       disabled: value.disabled === true,
       readOnly: value.readOnly === true,
@@ -98,12 +102,14 @@
 
 <script lang="ts">
   import { insideDialog } from '../lib/focus';
+  import { t } from '../lib/locale.svelte';
   import { EXIT_MS, motion } from '../lib/motion';
   import { onNui, post } from '../lib/nui';
   import Icon from './Icon.svelte';
 
   let menu = $state<Menu | null>(null);
   let focus = $state(-1);
+  let optionEls = $state<HTMLButtonElement[]>([]);
 
   function show(next: Menu | null) {
     if (next && next.id !== menu?.id) focus = next.options.findIndex(selectable);
@@ -131,6 +137,7 @@
       const next = (((focus + step * i) % count) + count) % count;
       if (selectable(menu.options[next])) {
         focus = next;
+        optionEls[next]?.scrollIntoView({ block: 'nearest' });
         return;
       }
     }
@@ -167,59 +174,66 @@
 
 {#if menu}
   <div class="absolute top-1/2 right-8 w-80 -translate-y-1/2">
-    <div class="flex flex-col gap-2" role="menu" aria-label={menu.title} in:motion={{ x: 0.25 }} out:motion={{ x: 0.25, duration: EXIT_MS }}>
+    <div class="flex flex-col gap-2" in:motion={{ x: 0.25 }} out:motion={{ x: 0.25, duration: EXIT_MS }}>
       <div class="flex h-11 items-center gap-3 rounded-[0.625rem] border border-border bg-popover px-3.5">
         {#if menu.canBack}
-          <button type="button" aria-label="Back" onclick={back} class="-m-1 rounded p-1 transition-colors duration-150 hover:bg-muted">
+          <button type="button" aria-label={t('ui.back')} onclick={back} class="-m-1 rounded p-1 transition-colors duration-150 hover:bg-muted">
             <Icon name="arrow-left" size={14} color={colors.mutedForeground} />
           </button>
         {/if}
         <p class="flex-1 truncate text-heading font-semibold text-foreground">{menu.title}</p>
         {#if menu.canClose}
-          <button type="button" aria-label="Close" onclick={close} class="-m-1 rounded p-1 transition-colors duration-150 hover:bg-muted">
+          <button type="button" aria-label={t('ui.close')} onclick={close} class="-m-1 rounded p-1 transition-colors duration-150 hover:bg-muted">
             <Icon name="close" size={13} color={colors.mutedForeground} />
           </button>
         {/if}
       </div>
-      {#each menu.options as option, index (option.key)}
-        {@const lit = index === focus && selectable(option)}
-        <button
-          type="button"
-          role="menuitem"
-          tabindex="-1"
-          aria-disabled={!selectable(option)}
-          onmouseenter={() => selectable(option) && (focus = index)}
-          onclick={() => select(option)}
-          class="flex w-full items-center gap-3.5 rounded-[0.625rem] border px-3.5 py-3 text-left transition-colors duration-150 {optionSurface(option, lit)}"
-        >
-          {#if option.icon}
-            <Icon name={option.icon} size={18} color={optionIconColor(option, lit)} />
-          {/if}
-          <div class="flex min-w-0 flex-1 flex-col {option.progress === undefined ? 'gap-0.5' : 'gap-[0.4375rem]'}">
-            <div class="flex items-baseline justify-between gap-2">
-              <p class="truncate text-label font-medium {option.disabled ? 'text-disabled' : 'text-foreground'}">{option.title}</p>
-              {#if option.progress !== undefined}
-                <p class="text-caption font-semibold tabular-nums" style:color={option.progressColor}>{Math.round(option.progress)}%</p>
+      {#key menu.id}
+        <div class="flex max-h-[calc(100vh-8rem)] flex-col gap-2 overflow-y-auto" role="menu" aria-label={menu.title}>
+          {#each menu.options as option, index (option.key)}
+            {@const lit = index === focus && selectable(option)}
+            <button
+              bind:this={optionEls[index]}
+              type="button"
+              role="menuitem"
+              tabindex="-1"
+              aria-disabled={!selectable(option)}
+              onmouseenter={() => selectable(option) && (focus = index)}
+              onclick={() => select(option)}
+              class="flex w-full shrink-0 items-center gap-3.5 rounded-[0.625rem] border px-3.5 py-3 text-left transition-colors duration-150 {optionSurface(option, lit)}"
+            >
+              {#if option.icon}
+                <Icon name={option.icon} size={18} color={optionIconColor(option, lit)} />
               {/if}
-            </div>
-            {#if option.description}
-              <p class="text-caption {option.disabled ? 'text-disabled' : 'text-muted-foreground'}">{option.description}</p>
-            {/if}
-            {#if option.progress !== undefined}
-              <div class="h-[0.1875rem] rounded-sm bg-secondary">
-                <div
-                  class="h-full rounded-sm"
-                  style:width="{Math.min(100, Math.max(0, option.progress))}%"
-                  style:background-color={option.disabled ? colors.disabled : option.progressColor}
-                ></div>
+              <div class="flex min-w-0 flex-1 flex-col {option.progress === undefined ? 'gap-0.5' : 'gap-[0.4375rem]'}">
+                <div class="flex items-baseline justify-between gap-2">
+                  <p class="truncate text-label font-medium {option.disabled ? 'text-disabled' : 'text-foreground'}">{option.title}</p>
+                  {#if option.progress !== undefined}
+                    <p class="text-caption font-semibold tabular-nums" style:color={option.disabled ? colors.disabled : option.progressText}>
+                      {Math.round(option.progress)}%
+                    </p>
+                  {/if}
+                </div>
+                {#if option.description}
+                  <p class="text-caption {option.disabled ? 'text-disabled' : 'text-muted-foreground'}">{option.description}</p>
+                {/if}
+                {#if option.progress !== undefined}
+                  <div class="h-[0.1875rem] rounded-sm bg-secondary">
+                    <div
+                      class="h-full rounded-sm"
+                      style:width="{Math.min(100, Math.max(0, option.progress))}%"
+                      style:background-color={option.disabled ? colors.disabled : option.progressColor}
+                    ></div>
+                  </div>
+                {/if}
               </div>
-            {/if}
-          </div>
-          {#if option.arrow}
-            <Icon name="caret-right" size={12} color={option.disabled ? colors.disabled : colors.caret} />
-          {/if}
-        </button>
-      {/each}
+              {#if option.arrow}
+                <Icon name="caret-right" size={12} color={option.disabled ? colors.disabled : colors.caret} />
+              {/if}
+            </button>
+          {/each}
+        </div>
+      {/key}
     </div>
   </div>
 {/if}

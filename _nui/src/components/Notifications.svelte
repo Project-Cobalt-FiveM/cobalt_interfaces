@@ -1,6 +1,7 @@
 <script lang="ts" module>
   import { colors } from '../lib/colors';
   import { resolveIcon } from '../lib/icons';
+  import { t } from '../lib/locale.svelte';
   import { isRecord, num, str } from '../lib/parse';
 
   export type Toast = {
@@ -18,10 +19,10 @@
   const DEFAULT_DURATION = 5000;
 
   const types = {
-    success: { title: 'Success', icon: 'check-circle', color: colors.success },
-    error: { title: 'Error', icon: 'warning-circle', color: colors.destructive },
-    warning: { title: 'Warning', icon: 'warning', color: colors.warning },
-    info: { title: 'Info', icon: 'info', color: colors.cobalt },
+    success: { title: 'ui.notify.success', icon: 'check-circle', color: colors.success },
+    error: { title: 'ui.notify.error', icon: 'warning-circle', color: colors.destructive },
+    warning: { title: 'ui.notify.warning', icon: 'warning', color: colors.warning },
+    info: { title: 'ui.notify.info', icon: 'info', color: colors.cobalt },
   } as const;
 
   type NotifyType = keyof typeof types;
@@ -45,7 +46,7 @@
     return {
       key: nextKey++,
       id: str(data.id),
-      title: str(data.title) ?? type.title,
+      title: str(data.title) ?? t(type.title),
       description: str(data.description),
       duration: num(data.duration) ?? DEFAULT_DURATION,
       icon: resolveIcon(str(data.icon)) ?? type.icon,

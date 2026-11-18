@@ -132,7 +132,7 @@ local function show(menuId)
     local wire <const> = {}
 
     for _, item in ipairs(itemsOf(menuId)) do
-        if visible(item) then
+        if visible(item) and type(item.label) == 'string' and item.label ~= '' then
             shown[#shown + 1] = item
             wire[#wire + 1] = toWire(item)
         end
@@ -149,7 +149,7 @@ local function show(menuId)
     nui.send('radialShow', {
         menu = menuId or 'root',
         label = menu and menu.menu.label or nil,
-        parent = #stack > 0 and (parentMenu and parentMenu.menu.label or 'Menu') or nil,
+        parent = #stack > 0 and (parentMenu and parentMenu.menu.label or locale('radial.menu')) or nil,
         clickMode = clickMode,
         items = wire,
     })
@@ -299,7 +299,7 @@ RegisterCommand('-' .. COMMAND, function()
     nui.send('radialRelease')
 end, false)
 
-RegisterKeyMapping('+' .. COMMAND, 'Open the radial menu', 'keyboard', 'F1')
+RegisterKeyMapping('+' .. COMMAND, locale('keybind.radial'), 'keyboard', 'F1')
 
 RegisterNUICallback('radialSelect', function(data, cb)
     cb(1)

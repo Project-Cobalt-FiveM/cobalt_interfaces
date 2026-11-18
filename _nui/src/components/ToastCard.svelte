@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/locale.svelte';
   import { EXIT_MS, motion } from '../lib/motion';
   import Icon from './Icon.svelte';
   import type { Toast } from './Notifications.svelte';
@@ -16,7 +17,7 @@
 
   const age = $derived.by(() => {
     const minutes = Math.floor((now - toast.createdAt) / 60000);
-    return minutes < 1 ? 'now' : `${minutes}m`;
+    return minutes < 1 ? t('ui.now') : t('ui.minutes_ago', minutes);
   });
 
   $effect(() => {

@@ -16,13 +16,15 @@ shared_script '@ox_lib/init.lua'
 client_script 'client/init.lua'
 server_script 'server/init.lua'
 
+ox_lib 'locale'
+
 ui_page '_nui/build/index.html'
 
 files {
     'config.lua',
     'client/*.lua',
     'imports/*.lua',
+    'locales/*.json',
     '_nui/build/index.html',
     '_nui/build/assets/*',
-    '_nui/build/sounds/*',
 }

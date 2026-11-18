@@ -17,7 +17,7 @@ function Notify.show(data)
 end
 
 function Notify.busy()
-    Notify.show({ description = 'You are already doing something.', type = 'error', duration = 2500 })
+    Notify.show({ description = locale('notify.busy'), type = 'error', duration = 2500 })
 end
 
 RegisterNetEvent('cobalt_interfaces:notify', Notify.show)

@@ -16,21 +16,7 @@
   const SEGMENTS = 20;
   const RESULT_HOLD_MS = 700;
 
-  const sounds: Record<Outcome, HTMLAudioElement> = {
-    complete: new Audio('./sounds/complete.ogg'),
-    cancel: new Audio('./sounds/cancel.ogg'),
-  };
-
   let runs = 0;
-
-  function playSound(outcome: Outcome, volume: number) {
-    if (volume <= 0) return;
-
-    const sound = sounds[outcome];
-    sound.volume = Math.min(1, volume);
-    sound.currentTime = 0;
-    sound.play().catch(() => {});
-  }
 
   function parseBar(data: unknown): Bar | null {
     if (!isRecord(data)) return null;
@@ -57,6 +43,7 @@
 
 <script lang="ts">
   import { colors } from '../lib/colors';
+  import { t } from '../lib/locale.svelte';
   import { EXIT_MS, motion } from '../lib/motion';
   import { onNui } from '../lib/nui';
   import Icon from './Icon.svelte';
@@ -86,7 +73,6 @@
 
       clearTimeout(hold);
       if (bar) bar = { ...bar, outcome };
-      playSound(outcome, isRecord(data) ? (num(data.volume) ?? 0) : 0);
       hold = setTimeout(() => (bar = null), RESULT_HOLD_MS);
     }),
   );
@@ -124,7 +110,7 @@
         >
           <div class="flex items-center gap-2.5">
             <Icon name={outcomeIcon(bar)} size={16} color={cancelled ? colors.destructive : colors.cobalt} />
-            <p class="flex-1 truncate text-label font-semibold text-foreground">{cancelled ? 'Cancelled' : bar.label}</p>
+            <p class="flex-1 truncate text-label font-semibold text-foreground">{cancelled ? t('ui.cancelled') : bar.label}</p>
             <p class="text-label font-semibold tabular-nums transition-colors duration-200 {cancelled ? 'text-destructive' : 'text-foreground'}">
               {percent}%
             </p>
@@ -139,7 +125,7 @@
           {#if bar.cancelKey}
             <div class="flex items-center justify-center gap-2 transition-opacity duration-150 {running ? 'opacity-100' : 'opacity-0'}">
               <Keycap label={bar.cancelKey} size="sm" />
-              <p class="text-caption font-medium text-hint">Cancel</p>
+              <p class="text-caption font-medium text-hint">{t('ui.cancel')}</p>
             </div>
           {/if}
         </div>

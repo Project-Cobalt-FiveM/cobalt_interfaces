@@ -15,7 +15,9 @@
 </script>
 
 <script lang="ts">
+  import { tick } from 'svelte';
   import { colors } from '../lib/colors';
+  import { t } from '../lib/locale.svelte';
   import { EXIT_MS, motion } from '../lib/motion';
   import Icon from './Icon.svelte';
 
@@ -37,16 +39,21 @@
 
   const summary = $derived.by(() => {
     const labels = options.filter(isSelected).map((option) => option.label);
-    return multiple && labels.length > 2 ? `${labels.length} selected` : labels.join(', ');
+    return multiple && labels.length > 2 ? t('ui.selected_count', labels.length) : labels.join(', ');
   });
 
   function isSelected(option: SelectOption): boolean {
     return selected.includes(option.value);
   }
 
+  function reveal(index: number) {
+    document.getElementById(`${id}-opt-${index}`)?.scrollIntoView({ block: 'nearest' });
+  }
+
   function openList() {
     active = Math.max(0, options.findIndex(isSelected));
     open = true;
+    void tick().then(() => reveal(active));
   }
 
   function choose(option: SelectOption | undefined) {
@@ -68,6 +75,7 @@
       const next = (((active + step * i) % count) + count) % count;
       if (options[next] && !options[next].disabled) {
         active = next;
+        reveal(next);
         return;
       }
     }
@@ -108,20 +116,23 @@
       ? 'bg-muted'
       : 'bg-background hover:bg-muted'} {fieldBorder(invalid)}"
   >
-    <span class="flex-1 truncate text-label font-medium {summary ? 'text-foreground' : 'text-caret'}">{summary || placeholder || 'Select'}</span>
+    <span class="flex-1 truncate text-label font-medium {summary ? 'text-foreground' : 'text-caret'}">{summary || placeholder || t('ui.select')}</span>
     <Icon name="caret-down" size={12} color={open ? colors.mutedForeground : colors.caret} class="transition-transform duration-200 {open ? 'rotate-180' : ''}" />
   </button>
   {#if open}
     <div
       id="{id}-list"
       role="listbox"
+      tabindex="-1"
       aria-multiselectable={multiple}
+      onmousedown={(event) => event.preventDefault()}
       class="absolute top-full right-0 left-0 z-10 mt-2 flex max-h-56 flex-col gap-0.5 overflow-y-auto rounded-[0.625rem] border border-input bg-popover p-1"
       in:motion={{ y: 0.25 }}
       out:motion={{ y: 0.25, duration: EXIT_MS }}
     >
       {#each options as option, index (option.value)}
         <div
+          id="{id}-opt-{index}"
           role="option"
           tabindex="-1"
           aria-selected={isSelected(option)}

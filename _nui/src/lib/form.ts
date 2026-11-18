@@ -1,4 +1,6 @@
+import { colors } from './colors';
 import { resolveIcon } from './icons';
+import { t } from './locale.svelte';
 import { isRecord, num, str } from './parse';
 import type { InputRowType, InputValue } from './types';
 
@@ -29,6 +31,7 @@ export type Row = {
 };
 
 export type Form = {
+  id: number;
   run: number;
   heading: string;
   description?: string;
@@ -89,7 +92,7 @@ function initialValue(kind: InputRowType, data: Record<string, unknown>, min?: n
     case 'date':
       return toDateInput(fallback);
     case 'color':
-      return str(fallback) ?? '#5078D7';
+      return str(fallback) ?? colors.cobalt;
     case 'input':
     case 'textarea':
       return isSelectValue(fallback) ? String(fallback) : '';
@@ -112,7 +115,7 @@ function parseRow(data: unknown): Row {
     placeholder: str(row.placeholder),
     icon: resolveIcon(str(row.icon)),
     prefix: str(row.prefix),
-    required: row.required === true || row.isRequired === true,
+    required: row.required === true,
     disabled: row.disabled === true,
     password: row.password === true,
     returnString: row.returnString === true,
@@ -127,16 +130,20 @@ function parseRow(data: unknown): Row {
 export function parseForm(data: unknown): Form | null {
   if (!isRecord(data) || !Array.isArray(data.rows)) return null;
 
+  const id = num(data.id);
+  if (id === undefined) return null;
+
   const options = isRecord(data.options) ? data.options : {};
 
   return {
+    id,
     run: runs++,
     heading: str(data.heading) ?? '',
     description: str(options.description),
     icon: resolveIcon(str(options.icon)) ?? 'note-pencil',
-    allowCancel: options.allowCancel !== false && options.canCancel !== false,
-    submitText: str(options.submitText) ?? str(options.confirmLabel) ?? 'Confirm',
-    cancelText: str(options.cancelText) ?? 'Cancel',
+    allowCancel: options.allowCancel !== false,
+    submitText: str(options.submitText) ?? t('ui.confirm'),
+    cancelText: str(options.cancelText) ?? t('ui.cancel'),
     rows: data.rows.map(parseRow),
   };
 }
@@ -162,6 +169,15 @@ export function missing(row: Row, value: InputValue): boolean {
   if (Array.isArray(value)) return value.length === 0;
 
   return value === null || value === '' || value === false;
+}
+
+export function outOfRange(row: Row, value: InputValue): boolean {
+  if (row.kind !== 'number') return false;
+
+  const parsed = output(row, value);
+  if (typeof parsed !== 'number') return false;
+
+  return (row.min !== undefined && parsed < row.min) || (row.max !== undefined && parsed > row.max);
 }
 
 export function fieldId(run: number, index: number): string {

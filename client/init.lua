@@ -1,3 +1,4 @@
+local nui <const> = require 'client.nui'
 local notify <const> = require 'client.notify'
 local progress <const> = require 'client.progress'
 local textui <const> = require 'client.textui'
@@ -42,6 +43,18 @@ exports('getCurrentRadialId', radial.getCurrentId)
 AddEventHandler('cobalt_interfaces:client:showCard', card.show)
 AddEventHandler('cobalt_interfaces:client:hideCard', card.hide)
 
+---@type table<string, string>
+local uiLocales <const> = {}
+
+for key, value in pairs(lib.getLocales()) do
+    if key:sub(1, 3) == 'ui.' then uiLocales[key] = value end
+end
+
+RegisterNUICallback('ready', function(_, cb)
+    cb(1)
+    nui.send('setLocales', uiLocales)
+end)
+
 ---@param owner? string only close what this resource opened; nil closes everything
 local function release(owner)
     skillcheck.release(owner)
@@ -71,7 +84,11 @@ AddEventHandler('onResourceStop', function(resource)
     releaseAll()
 end)
 
-RegisterNetEvent('cobalt_core:Client:OnPlayerUnload', releaseAll)
+RegisterNetEvent('cobalt_core:Client:OnPlayerUnload', function()
+    if progress.isActive() then progress.cancel() end
+
+    releaseAll()
+end)
 
 AddStateBagChangeHandler('isDead', ('player:%s'):format(cache.serverId), function(_, _, dead)
     if dead then closeInteractive() end

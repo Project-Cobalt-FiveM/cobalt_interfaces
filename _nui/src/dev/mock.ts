@@ -1,9 +1,37 @@
 import { installMock } from '../lib/nui';
 import type { CardShowData, CardStyle } from '../lib/card';
+import type { Locales } from '../lib/locale.svelte';
+import { isRecord } from '../lib/parse';
 import type { ContextShowData, NuiAction, NuiMessages, RadialShowData } from '../lib/types';
+
+const localeFiles = import.meta.glob<unknown>('../../../locales/en.json', { eager: true, import: 'default' });
+
+function flatten(tree: unknown, prefix = '', into: Locales = {}): Locales {
+  if (typeof tree === 'string') {
+    into[prefix] = tree;
+    return into;
+  }
+
+  if (!isRecord(tree)) return into;
+
+  for (const [key, value] of Object.entries(tree)) {
+    flatten(value, prefix ? `${prefix}.${key}` : key, into);
+  }
+
+  return into;
+}
+
+const locales = flatten(Object.values(localeFiles)[0]);
+
+let lastId = 0;
 
 export function send<K extends NuiAction>(action: K, ...data: NuiMessages[K] extends undefined ? [] : [NuiMessages[K]]): void {
   window.postMessage({ action, data: data[0] }, '*');
+}
+
+export function nextId(): number {
+  lastId += 1;
+  return lastId;
 }
 
 const menus: Record<'vehicle' | 'trunk', ContextShowData> = {
@@ -88,7 +116,7 @@ installMock({
     if (id === 'trunk') showMenu('vehicle');
   },
   contextClose: () => send('contextHide'),
-  skillCheckOver: (success) => console.info('skill check', success),
+  skillCheckOver: (data) => console.info('skill check', JSON.stringify(data)),
   inputDialogSubmit: (data) => console.info('input dialog', JSON.stringify(data)),
   alertDialogSubmit: (data) => console.info('alert dialog', JSON.stringify(data)),
   radialSelect: ({ index }) => {
@@ -98,4 +126,7 @@ installMock({
   },
   radialBack: () => send('radialShow', { ...radialRoot, clickMode: true }),
   radialClose: () => send('radialHide'),
+  ready: () => send('setLocales', locales),
 });
+
+send('setLocales', locales);

@@ -4,6 +4,7 @@
   type Round = { areaSize: number; speed: number };
 
   type Check = {
+    id: number;
     run: number;
     rounds: NonEmpty<Round>;
     inputs: NonEmpty<string>;
@@ -44,6 +45,9 @@
   function parseCheck(data: unknown): Check | null {
     if (!isRecord(data)) return null;
 
+    const id = num(data.id);
+    if (id === undefined) return null;
+
     const list: unknown[] = Array.isArray(data.difficulty) ? data.difficulty : [data.difficulty];
     const rounds = nonEmpty(list.map(parseRound).filter((round) => round !== null));
     if (!rounds) return null;
@@ -51,6 +55,7 @@
     const keys = Array.isArray(data.inputs) ? data.inputs.map(str).filter((key) => key !== undefined) : [];
 
     return {
+      id,
       run: runs++,
       rounds,
       inputs: nonEmpty(keys.map((key) => key.toLowerCase())) ?? ['e'],
@@ -75,6 +80,8 @@
 </script>
 
 <script lang="ts">
+  import { colors } from '../lib/colors';
+  import { t } from '../lib/locale.svelte';
   import { EXIT_MS, motion } from '../lib/motion';
   import { onNui, post } from '../lib/nui';
   import Keycap from './Keycap.svelte';
@@ -110,9 +117,12 @@
   }
 
   function finish(success: boolean) {
+    if (!check) return;
+
+    const id = check.id;
     clearTimeout(hold);
     check = null;
-    post('skillCheckOver', success);
+    post('skillCheckOver', { id, success });
   }
 
   function finishRound(success: boolean) {
@@ -147,16 +157,14 @@
   $effect(() =>
     onNui('skillCheckStart', (data) => {
       const parsed = parseCheck(data);
-      if (parsed) start(parsed);
-      else post('skillCheckOver', false);
+      if (parsed) return start(parsed);
+
+      const id = isRecord(data) ? num(data.id) : undefined;
+      if (id !== undefined) post('skillCheckOver', { id, success: false });
     }),
   );
 
-  $effect(() =>
-    onNui('skillCheckCancel', () => {
-      if (check) finish(false);
-    }),
-  );
+  $effect(() => onNui('skillCheckCancel', () => finish(false)));
 
   $effect(() => {
     if (!round || result !== null) return;
@@ -188,9 +196,9 @@
     <div class="flex w-[16.25rem] flex-col items-center gap-3.5" in:motion={{ scale: 0.98 }} out:motion={{ scale: 0.98, duration: EXIT_MS }}>
       <div class="relative flex size-40 items-center justify-center">
         <svg viewBox="0 0 160 160" class="absolute inset-0 size-full" aria-hidden="true">
-          <circle cx="80" cy="80" r="60" fill="none" stroke="#262626" stroke-width="6" />
-          <path d={arcPath(zone, round.areaSize)} fill="none" stroke="#5078D7" stroke-width="6" stroke-linecap="round" />
-          <line x1={needle[0][0]} y1={needle[0][1]} x2={needle[1][0]} y2={needle[1][1]} stroke="#FAFAFA" stroke-width="4" stroke-linecap="round" />
+          <circle cx="80" cy="80" r="60" fill="none" stroke={colors.secondary} stroke-width="6" />
+          <path d={arcPath(zone, round.areaSize)} fill="none" stroke={colors.cobalt} stroke-width="6" stroke-linecap="round" />
+          <line x1={needle[0][0]} y1={needle[0][1]} x2={needle[1][0]} y2={needle[1][1]} stroke={colors.foreground} stroke-width="4" stroke-linecap="round" />
         </svg>
         <Keycap {label} size="lg" />
       </div>
@@ -200,7 +208,7 @@
             <span class="size-2 rounded-full transition-colors duration-150 {dotColors[dot]}"></span>
           {/each}
         </div>
-        <p class="text-small font-semibold whitespace-nowrap text-foreground">Press {label} in the blue zone</p>
+        <p class="text-small font-semibold whitespace-nowrap text-foreground">{t('ui.skillcheck_hint', label)}</p>
       </div>
     </div>
   </div>

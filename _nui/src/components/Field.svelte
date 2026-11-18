@@ -1,6 +1,7 @@
 <script lang="ts">
   import { colors } from '../lib/colors';
   import type { Row } from '../lib/form';
+  import { t } from '../lib/locale.svelte';
   import type { InputValue } from '../lib/types';
   import Icon from './Icon.svelte';
   import Select, { fieldBorder } from './Select.svelte';
@@ -79,7 +80,7 @@
     <div class="flex justify-between gap-2">
       <label for={id} class="text-small font-medium text-foreground">{row.label}</label>
       {#if row.required}
-        <span class="text-caption text-caret">Required</span>
+        <span class="text-caption text-caret">{t('ui.required')}</span>
       {/if}
     </div>
     {#if row.description}
@@ -113,7 +114,7 @@
         {#if row.kind === 'color'}
           <input
             type="color"
-            aria-label="{row.label} swatch"
+            aria-label={t('ui.swatch', row.label)}
             value={swatch}
             disabled={row.disabled}
             oninput={(event) => onchange(event.currentTarget.value.toUpperCase())}

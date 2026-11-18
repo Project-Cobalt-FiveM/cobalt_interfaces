@@ -4,6 +4,7 @@ local notify <const> = require 'client.notify'
 local Dialog <const> = {}
 
 ---@class PendingDialog
+---@field id integer
 ---@field promise promise
 ---@field owner string
 
@@ -12,6 +13,8 @@ local pendingInput
 
 ---@type PendingDialog?
 local pendingAlert
+
+local lastId = 0
 
 ---@class InputRow
 ---@field type? 'input' | 'number' | 'select' | 'multi-select' | 'slider' | 'checkbox' | 'textarea' | 'date' | 'color'
@@ -53,7 +56,9 @@ end
 ---@param owner? string
 ---@return PendingDialog
 local function pend(owner)
-    return { promise = promise.new(), owner = owner or GetInvokingResource() or cache.resource }
+    lastId += 1
+
+    return { id = lastId, promise = promise.new(), owner = owner or GetInvokingResource() or cache.resource }
 end
 
 ---@param heading string
@@ -71,7 +76,7 @@ function Dialog.input(heading, rows, options, owner)
 
     local current <const> = pend(owner)
     pendingInput = current
-    nui.send('inputDialogOpen', { heading = heading, rows = rows, options = options })
+    nui.send('inputDialogOpen', { id = current.id, heading = heading, rows = rows, options = options })
     nui.focus('inputDialog', 'cursor')
 
     return Citizen.Await(current.promise)
@@ -104,8 +109,10 @@ function Dialog.alert(data, timeout, owner)
     end
 
     local current <const> = pend(owner)
+    local payload <const> = table.clone(data) --[[@as table]]
+    payload.id = current.id
     pendingAlert = current
-    nui.send('alertDialogOpen', data)
+    nui.send('alertDialogOpen', payload)
     nui.focus('alertDialog', 'cursor')
 
     if timeout then
@@ -159,12 +166,18 @@ end
 
 RegisterNUICallback('inputDialogSubmit', function(data, cb)
     cb(1)
-    finishInput(type(data) == 'table' and data.values or nil)
+
+    if type(data) ~= 'table' or not pendingInput or data.id ~= pendingInput.id then return end
+
+    finishInput(data.values)
 end)
 
 RegisterNUICallback('alertDialogSubmit', function(data, cb)
     cb(1)
-    finishAlert(type(data) == 'table' and data.result == 'confirm' and 'confirm' or 'cancel')
+
+    if type(data) ~= 'table' or not pendingAlert or data.id ~= pendingAlert.id then return end
+
+    finishAlert(data.result == 'confirm' and 'confirm' or 'cancel')
 end)
 
 return Dialog

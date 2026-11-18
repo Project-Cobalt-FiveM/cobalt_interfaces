@@ -1,11 +1,5 @@
 <script lang="ts">
-  import '@fontsource/amiri/arabic-700.css';
-  import '@fontsource/homemade-apple/latin-400.css';
-  import '@fontsource/libre-baskerville/latin-700.css';
-  import '@fontsource/noto-naskh-arabic/arabic-400.css';
-  import '@fontsource/noto-naskh-arabic/arabic-700.css';
-  import '@fontsource/roboto-condensed/latin-400.css';
-  import '@fontsource/roboto-condensed/latin-700.css';
+  import '../cards/fonts.css';
   import CardFront from '../cards/CardFront.svelte';
   import { parseCard, type Card } from '../lib/card';
   import { EXIT_MS, motion } from '../lib/motion';
